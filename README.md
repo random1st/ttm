@@ -21,7 +21,11 @@ A lightweight menu bar app for tracking work time across multiple projects simul
 
 1. Download the latest DMG from [Releases](https://github.com/random1st/ttm/releases)
 2. Open the DMG and drag TTM to Applications
-3. Launch TTM from Applications
+3. **Important:** The app is not notarized. Remove quarantine attribute:
+   ```bash
+   xattr -cr /Applications/TTM.app
+   ```
+4. Launch TTM from Applications
 
 ### Build from Source
 
