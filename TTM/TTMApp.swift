@@ -4,7 +4,6 @@ import SwiftData
 @main
 struct TTMApp: App {
     let modelContainer: ModelContainer
-    @State private var appState = AppState.shared
 
     init() {
         do {
@@ -26,16 +25,7 @@ struct TTMApp: App {
             ContentView()
                 .modelContainer(modelContainer)
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: appState.activeCount > 0 ? "timer.circle.fill" : "timer")
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(appState.activeCount > 0 ? .green : .primary)
-
-                if !appState.menuBarTitle.isEmpty {
-                    Text(appState.menuBarTitle)
-                        .font(.system(.caption, design: .monospaced))
-                }
-            }
+            Image(systemName: "timer")
         }
         .menuBarExtraStyle(.window)
     }

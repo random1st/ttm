@@ -8,8 +8,7 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @State private var showingAddProject = false
     @State private var newProjectName = ""
-
-    private let appState = AppState.shared
+    @State private var showingResetConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,17 +20,6 @@ struct ContentView: View {
 
                 Spacer()
 
-                // Pin button
-                Button {
-                    appState.isPinned.toggle()
-                } label: {
-                    Image(systemName: appState.isPinned ? "pin.fill" : "pin")
-                        .font(.caption)
-                        .foregroundStyle(appState.isPinned ? .blue : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help(appState.isPinned ? "Unpin window" : "Pin window")
-
                 Text(formattedTotalToday)
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -41,15 +29,13 @@ struct ContentView: View {
 
             Divider()
 
-            // Tab picker with keyboard hints
-            HStack(spacing: 4) {
-                Picker("", selection: $selectedTab) {
-                    Text("Projects").tag(0)
-                    Text("Today").tag(1)
-                    Text("History").tag(2)
-                }
-                .pickerStyle(.segmented)
+            // Tab picker
+            Picker("", selection: $selectedTab) {
+                Text("Projects").tag(0)
+                Text("Today").tag(1)
+                Text("History").tag(2)
             }
+            .pickerStyle(.segmented)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
 
@@ -75,7 +61,7 @@ struct ContentView: View {
 
             Divider()
 
-            // Footer with shortcuts hint
+            // Footer
             HStack {
                 if !timerManager.activeEntries.isEmpty {
                     Circle()
@@ -84,13 +70,18 @@ struct ContentView: View {
                     Text("\(timerManager.activeEntries.count) running")
                         .font(.caption)
                         .foregroundStyle(.green)
-                } else {
-                    Text("⌘1-9 toggle timers")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
                 }
 
                 Spacer()
+
+                Button {
+                    showingResetConfirm = true
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .help("Reset all data")
 
                 Button {
                     timerManager.stopAll(context: modelContext)
@@ -104,20 +95,18 @@ struct ContentView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+            .alert("Reset All Data?", isPresented: $showingResetConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    resetAllData()
+                }
+            } message: {
+                Text("This will delete all projects and time entries. This cannot be undone.")
+            }
         }
         .frame(width: 360, height: 500)
         .onAppear {
             timerManager.restoreActiveEntries(from: projects)
-            updateAppState()
-        }
-        .onChange(of: timerManager.activeEntries.count) {
-            updateAppState()
-        }
-        .onChange(of: timerManager.tick) {
-            updateAppState()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleProjectTimer)) { notification in
-            handleToggleProjectTimer(notification)
         }
     }
 
@@ -128,7 +117,6 @@ struct ContentView: View {
 
     private func calculateTotalToday() -> TimeInterval {
         var total = projects.reduce(0) { $0 + $1.todayDuration }
-        // Add currently running time
         for project in projects {
             if timerManager.isRunning(project: project) {
                 total += timerManager.elapsed(project: project)
@@ -143,20 +131,11 @@ struct ContentView: View {
         return String(format: "%dh %02dm", hours, minutes)
     }
 
-    private func updateAppState() {
-        appState.updateStatus(
-            activeCount: timerManager.activeEntries.count,
-            totalDuration: calculateTotalToday()
-        )
-    }
-
-    private func handleToggleProjectTimer(_ notification: Notification) {
-        guard let index = notification.userInfo?["index"] as? Int else { return }
-
-        let activeProjects = projects.filter { !$0.isArchived }
-        guard index < activeProjects.count else { return }
-
-        let project = activeProjects[index]
-        timerManager.toggle(project: project, context: modelContext)
+    private func resetAllData() {
+        timerManager.stopAll(context: modelContext)
+        for project in projects {
+            modelContext.delete(project)
+        }
+        try? modelContext.save()
     }
 }

@@ -4,7 +4,6 @@ import SwiftData
 struct ProjectRowView: View {
     @Environment(\.modelContext) private var modelContext
     let project: Project
-    let index: Int?
     let timerManager: TimerManager
     let onDelete: () -> Void
 
@@ -25,14 +24,6 @@ struct ProjectRowView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            // Shortcut badge
-            if let idx = index {
-                Text("⌘\(idx)")
-                    .font(.system(size: 9, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-                    .frame(width: 24)
-            }
-
             // Color indicator
             Circle()
                 .fill(Color(hex: project.colorHex) ?? .blue)
@@ -68,6 +59,9 @@ struct ProjectRowView: View {
 
             // Context menu
             Menu {
+                Button("Reset Time", systemImage: "arrow.counterclockwise") {
+                    resetProjectTime()
+                }
                 Button("Archive", systemImage: "archivebox") {
                     project.isArchived = true
                 }
@@ -114,6 +108,16 @@ struct ProjectRowView: View {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         }
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    private func resetProjectTime() {
+        if timerManager.isRunning(project: project) {
+            timerManager.stop(project: project, context: modelContext)
+        }
+        for entry in project.entries {
+            modelContext.delete(entry)
+        }
+        try? modelContext.save()
     }
 }
 

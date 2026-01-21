@@ -48,10 +48,9 @@ struct ProjectListView: View {
     private var projectsList: some View {
         ScrollView {
             LazyVStack(spacing: 8) {
-                ForEach(Array(activeProjects.enumerated()), id: \.element.id) { index, project in
+                ForEach(activeProjects) { project in
                     ProjectRowView(
                         project: project,
-                        index: index < 9 ? index + 1 : nil,
                         timerManager: timerManager,
                         onDelete: { deleteProject(project) }
                     )
