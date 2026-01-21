@@ -8,7 +8,7 @@ struct ContentView: View {
     @State private var selectedTab = 0
     @State private var showingAddProject = false
     @State private var newProjectName = ""
-    @State private var showingResetConfirm = false
+    @State private var resetConfirmStep = 0  // 0=hidden, 1=confirm, 2=confirmed
 
     var body: some View {
         VStack(spacing: 0) {
@@ -63,46 +63,55 @@ struct ContentView: View {
 
             // Footer
             HStack {
-                if !timerManager.activeEntries.isEmpty {
-                    Circle()
-                        .fill(.green)
-                        .frame(width: 8, height: 8)
-                    Text("\(timerManager.activeEntries.count) running")
+                if resetConfirmStep == 1 {
+                    Text("Reset all?")
                         .font(.caption)
-                        .foregroundStyle(.green)
-                }
+                        .foregroundStyle(.red)
+                    Button("Yes") {
+                        resetAllData()
+                        resetConfirmStep = 0
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+                    .controlSize(.small)
+                    Button("No") {
+                        resetConfirmStep = 0
+                    }
+                    .controlSize(.small)
+                } else {
+                    if !timerManager.activeEntries.isEmpty {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 8, height: 8)
+                        Text("\(timerManager.activeEntries.count) running")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
 
-                Spacer()
+                    Spacer()
 
-                Button {
-                    showingResetConfirm = true
-                } label: {
-                    Image(systemName: "trash")
-                        .foregroundStyle(.red.opacity(0.7))
-                }
-                .buttonStyle(.plain)
-                .help("Reset all data")
+                    Button {
+                        resetConfirmStep = 1
+                    } label: {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.red.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Reset all data")
 
-                Button {
-                    timerManager.stopAll(context: modelContext)
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    Image(systemName: "power")
-                        .foregroundStyle(.secondary)
+                    Button {
+                        timerManager.stopAll(context: modelContext)
+                        NSApplication.shared.terminate(nil)
+                    } label: {
+                        Image(systemName: "power")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Quit TTM")
                 }
-                .buttonStyle(.plain)
-                .help("Quit TTM")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .alert("Reset All Data?", isPresented: $showingResetConfirm) {
-                Button("Cancel", role: .cancel) {}
-                Button("Reset", role: .destructive) {
-                    resetAllData()
-                }
-            } message: {
-                Text("This will delete all projects and time entries. This cannot be undone.")
-            }
         }
         .frame(width: 360, height: 500)
         .onAppear {
